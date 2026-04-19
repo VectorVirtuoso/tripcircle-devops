@@ -3,12 +3,6 @@ pipeline {
 
     stages {
 
-        stage('Clone') {
-            steps {
-                git 'https://github.com/VectorVirtuoso/tripcircle-devops.git'
-            }
-        }
-
         stage('Build Docker Images') {
             steps {
                 sh 'docker-compose build'
