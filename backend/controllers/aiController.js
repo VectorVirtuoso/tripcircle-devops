@@ -103,7 +103,7 @@ exports.scanReceipt = async (req, res) => {
     const responseText = result.response.text();
     
     // THE MAGIC FIX: Strip away any Markdown formatting Gemini tries to add!
-    const cleanText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const cleanText = responseText.replaceAll(/```json/gi, '').replace(/```/g, '').trim();
     
     // Now it is perfectly safe to parse
     const receiptData = JSON.parse(cleanText);
