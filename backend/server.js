@@ -4,6 +4,17 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
+const client = require('prom-client');
+
+// collect default system metrics
+client.collectDefaultMetrics();
+
+// create custom metrics
+const httpRequestDuration = new client.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+});
 
 // Load environment variables
 dotenv.config();
@@ -15,7 +26,21 @@ connectDB();
 // Initialize Express
 const app = express();
 
+
 // Middleware
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+
+  res.on('finish', () => {
+    end({
+      method: req.method,
+      route: req.route ? req.route.path : req.path,
+      status_code: res.statusCode,
+    });
+  });
+
+  next();
+});
 app.use(cors()); // Allows our frontend to communicate with our backend
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -62,6 +87,10 @@ io.on("connection", (socket) => {
 // Basic Health Check Route
 app.get('/', (req, res) => {
   res.send('TripCircle Pro API is running...');
+});
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
 });
 
 // Start the server
